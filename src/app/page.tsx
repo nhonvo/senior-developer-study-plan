@@ -1,5 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import ViewSwitcher from './components/ViewSwitcher';
+import KanbanView from './components/KanbanView';
 
 // NOTE: The drag-and-drop functionality has been re-implemented using the browser's native
 // Drag and Drop API to remove the dependency on 'react-beautiful-dnd', which caused a compilation error.
@@ -14,6 +16,7 @@ interface Topic {
   PracticeExercise: string;
   completed: boolean;
   KnowledgeCovered: string;
+  status: 'To Do' | 'In Progress' | 'Done';
 }
 
 type Category = string;
@@ -32,7 +35,7 @@ const initialCsvData = `id,Category,Topic,Priority,Notes,PracticeExercise
 `;
 
 // --- Helper function to parse CSV data ---
-const parseCSV = (csvString: string): Partial<Topic>[] => {
+export const parseCSV = (csvString: string): Partial<Topic>[] => {
   const lines = csvString.trim().split('\n');
   if (lines.length < 2) return [];
   const headers = lines[0].split(',').map(h => h.trim());
@@ -65,6 +68,7 @@ export default function App() {
   const [currentTopic, setCurrentTopic] = useState<Topic | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [draggedItem, setDraggedItem] = useState<{ item: Topic | Category; type: 'TOPIC' | 'CATEGORY'; index: number } | null>(null);
+  const [currentView, setCurrentView] = useState<'list' | 'kanban'>('list');
 
   // --- Data Loading and Structuring ---
   useEffect(() => {
@@ -89,6 +93,7 @@ export default function App() {
           Priority: topic.Priority || 'Medium',
           Notes: topic.Notes || '',
           PracticeExercise: topic.PracticeExercise || '',
+          status: 'To Do',
         }));
         setTopics(initialTopics);
 
@@ -108,6 +113,7 @@ export default function App() {
         Priority: topic.Priority || 'Medium',
         Notes: topic.Notes || '',
         PracticeExercise: topic.PracticeExercise || '',
+        status: 'To Do',
       }));
       setTopics(initialTopics);
       const initialCategories = [...new Set(initialTopics.map(t => t.Category))];
@@ -135,7 +141,7 @@ export default function App() {
   // --- CRUD and Event Handlers ---
   const handleToggleComplete = (id: string) => {
     setTopics(topics.map(topic =>
-      topic.id === id ? { ...topic, completed: !topic.completed } : topic
+      topic.id === id ? { ...topic, completed: !topic.completed, status: !topic.completed ? 'Done' : 'To Do' } : topic
     ));
   };
 
@@ -154,7 +160,7 @@ export default function App() {
   };
 
   const handleAddTopic = () => {
-    setCurrentTopic({ id: '', Category: '', Topic: '', Priority: 'Medium', Notes: '', PracticeExercise: '', KnowledgeCovered: '', completed: false });
+    setCurrentTopic({ id: '', Category: '', Topic: '', Priority: 'Medium', Notes: '', PracticeExercise: '', KnowledgeCovered: '', completed: false, status: 'To Do' });
     setIsModalOpen(true);
   };
 
@@ -293,60 +299,66 @@ export default function App() {
           <div className="w-full bg-slate-700 rounded-full h-2.5"><div className="bg-cyan-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${progressPercentage}% ` }}></div></div>
         </div>
 
-        <div>
-          {categories.map((category, index) => {
-            const topicsForCategory = getTopicsForCategory(category);
-            const isCollapsed = collapsedCategories.includes(category);
-            if (searchTerm && topicsForCategory.length === 0) return null;
+        <ViewSwitcher currentView={currentView} onViewChange={setCurrentView} />
 
-            return (
-              <div key={category} className="mb-8"
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, category, 'CATEGORY', index)}>
-                <div
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, category, 'CATEGORY', index)}
-                  onClick={() => handleToggleCategoryCollapse(category)}
-                  className={`flex items-center justify-between mb-4 p-2 rounded-md bg-slate-800 / 50 hover: bg-slate-700 / 50 cursor-pointer transition-opacity ${draggedItem && draggedItem.type === 'CATEGORY' && draggedItem.item === category ? 'opacity-50' : ''} `}>
-                  <div className="flex items-center cursor-grab">
-                    <svg className="w-5 h-5 text-slate-500 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-                    <h3 className="text-2xl font-bold text-slate-200">{category}</h3>
+        {currentView === 'list' ? (
+          <div>
+            {categories.map((category, index) => {
+              const topicsForCategory = getTopicsForCategory(category);
+              const isCollapsed = collapsedCategories.includes(category);
+              if (searchTerm && topicsForCategory.length === 0) return null;
+
+              return (
+                <div key={category} className="mb-8"
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, category, 'CATEGORY', index)}>
+                  <div
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, category, 'CATEGORY', index)}
+                    onClick={() => handleToggleCategoryCollapse(category)}
+                    className={`flex items-center justify-between mb-4 p-2 rounded-md bg-slate-800 / 50 hover: bg-slate-700 / 50 cursor-pointer transition-opacity ${draggedItem && draggedItem.type === 'CATEGORY' && draggedItem.item === category ? 'opacity-50' : ''} `}>
+                    <div className="flex items-center cursor-grab">
+                      <svg className="w-5 h-5 text-slate-500 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                      <h3 className="text-2xl font-bold text-slate-200">{category}</h3>
+                    </div>
+                    <svg className={`w-6 h-6 text-slate-400 transform transition-transform ${!isCollapsed ? 'rotate-180' : ''} `} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                   </div>
-                  <svg className={`w-6 h-6 text-slate-400 transform transition-transform ${!isCollapsed ? 'rotate-180' : ''} `} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                </div>
-                {!isCollapsed && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {topicsForCategory.map((topic, topicIndex) => (
-                      <div
-                        key={topic.id}
-                        draggable
-                        onDragStart={(e) => { e.stopPropagation(); handleDragStart(e, topic, 'TOPIC', topicIndex); }}
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => { e.stopPropagation(); handleDrop(e, topic, 'TOPIC', topicIndex); }}
-                        className={`bg-slate-800 rounded-lg shadow-lg p-6 border-l-4 transition-all duration-300 cursor-grab${draggedItem && draggedItem.type === 'TOPIC' && 'id' in draggedItem.item && draggedItem.item.id === topic.id ? 'opacity-50' : ''} ${topic.completed ? 'border-green-500 opacity-60' : topic.Priority === 'High' ? 'border-red-500' : topic.Priority === 'Medium' ? 'border-yellow-500' : 'border-cyan-500'}`}
-                      >
-                        <header className="flex justify-between items-start mb-3">
-                          <span className="text-sm font-semibold text-cyan-400">{topic.Category}</span>
-                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${topic.Priority === 'High' ? 'bg-red-500/20 text-red-300' : topic.Priority === 'Medium' ? 'bg-yellow-500/20 text-yellow-300' : 'bg-green-500/20 text-green-300'} `}>{topic.Priority}</span>
-                        </header>
-                        <h2 className={`text-xl font-bold text-slate-100 mb-4 ${topic.completed ? 'line-through' : ''} `}>{topic.Topic}</h2>
-                        <div className="space-y-4 text-sm">
-                          <div><h4 className="font-semibold text-slate-400 mb-1">Notes</h4><p className="text-slate-300 whitespace-pre-wrap">{topic.Notes || 'N/A'}</p></div>
-                          <div><h4 className="font-semibold text-slate-400 mb-1">Practice Exercise</h4><p className="text-slate-300 whitespace-pre-wrap">{topic.PracticeExercise || 'N/A'}</p></div>
-                          <div><h4 className="font-semibold text-slate-400 mb-1">Knowledge Covered</h4><p className="text-slate-300 whitespace-pre-wrap bg-slate-900/50 p-3 rounded-md">{topic.KnowledgeCovered || 'No knowledge notes recorded yet.'}</p></div>
+                  {!isCollapsed && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {topicsForCategory.map((topic, topicIndex) => (
+                        <div
+                          key={topic.id}
+                          draggable
+                          onDragStart={(e) => { e.stopPropagation(); handleDragStart(e, topic, 'TOPIC', topicIndex); }}
+                          onDragOver={handleDragOver}
+                          onDrop={(e) => { e.stopPropagation(); handleDrop(e, topic, 'TOPIC', topicIndex); }}
+                          className={`bg-slate-800 rounded-lg shadow-lg p-6 border-l-4 transition-all duration-300 cursor-grab${draggedItem && draggedItem.type === 'TOPIC' && 'id' in draggedItem.item && draggedItem.item.id === topic.id ? 'opacity-50' : ''} ${topic.completed ? 'border-green-500 opacity-60' : topic.Priority === 'High' ? 'border-red-500' : topic.Priority === 'Medium' ? 'border-yellow-500' : 'border-cyan-500'}`}
+                        >
+                          <header className="flex justify-between items-start mb-3">
+                            <span className="text-sm font-semibold text-cyan-400">{topic.Category}</span>
+                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${topic.Priority === 'High' ? 'bg-red-500/20 text-red-300' : topic.Priority === 'Medium' ? 'bg-yellow-500/20 text-yellow-300' : 'bg-green-500/20 text-green-300'} `}>{topic.Priority}</span>
+                          </header>
+                          <h2 className={`text-xl font-bold text-slate-100 mb-4 ${topic.completed ? 'line-through' : ''} `}>{topic.Topic}</h2>
+                          <div className="space-y-4 text-sm">
+                            <div><h4 className="font-semibold text-slate-400 mb-1">Notes</h4><p className="text-slate-300 whitespace-pre-wrap">{topic.Notes || 'N/A'}</p></div>
+                            <div><h4 className="font-semibold text-slate-400 mb-1">Practice Exercise</h4><p className="text-slate-300 whitespace-pre-wrap">{topic.PracticeExercise || 'N/A'}</p></div>
+                            <div><h4 className="font-semibold text-slate-400 mb-1">Knowledge Covered</h4><p className="text-slate-300 whitespace-pre-wrap bg-slate-900/50 p-3 rounded-md">{topic.KnowledgeCovered || 'No knowledge notes recorded yet.'}</p></div>
+                          </div>
+                          <footer className="mt-6 pt-4 border-t border-slate-700 flex justify-between items-center">
+                            <div className="flex items-center"><input type="checkbox" checked={topic.completed} onChange={() => handleToggleComplete(topic.id)} className="h-5 w-5 rounded bg-slate-600 border-slate-500 text-cyan-500 focus:ring-cyan-600 cursor-pointer" id={`complete-${topic.id}`} /><label htmlFor={`complete-${topic.id}`} className="ml-2 text-sm text-slate-400 cursor-pointer">Mark as Completed</label></div>
+                            <div className="space-x-3"><button onClick={() => handleEditTopic(topic)} className="text-cyan-400 hover:text-cyan-300 transition font-medium">Edit</button><button onClick={() => handleDelete(topic.id)} className="text-red-500 hover:text-red-400 transition font-medium">Delete</button></div>
+                          </footer>
                         </div>
-                        <footer className="mt-6 pt-4 border-t border-slate-700 flex justify-between items-center">
-                          <div className="flex items-center"><input type="checkbox" checked={topic.completed} onChange={() => handleToggleComplete(topic.id)} className="h-5 w-5 rounded bg-slate-600 border-slate-500 text-cyan-500 focus:ring-cyan-600 cursor-pointer" id={`complete-${topic.id}`} /><label htmlFor={`complete-${topic.id}`} className="ml-2 text-sm text-slate-400 cursor-pointer">Mark as Completed</label></div>
-                          <div className="space-x-3"><button onClick={() => handleEditTopic(topic)} className="text-cyan-400 hover:text-cyan-300 transition font-medium">Edit</button><button onClick={() => handleDelete(topic.id)} className="text-red-500 hover:text-red-400 transition font-medium">Delete</button></div>
-                        </footer>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <KanbanView topics={topics} setTopics={setTopics} />
+        )}
       </div>
 
       {isModalOpen && currentTopic && (
@@ -357,6 +369,7 @@ export default function App() {
               <div><label className="text-sm font-medium text-slate-400 block mb-1">Category</label><input type="text" placeholder="e.g., ASP.NET Core" value={currentTopic.Category} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentTopic({ ...currentTopic, Category: e.target.value })} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" /></div>
               <div><label className="text-sm font-medium text-slate-400 block mb-1">Topic</label><input type="text" placeholder="e.g., Middleware Pipeline" value={currentTopic.Topic} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentTopic({ ...currentTopic, Topic: e.target.value })} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" /></div>
               <div><label className="text-sm font-medium text-slate-400 block mb-1">Priority</label><select value={currentTopic.Priority} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrentTopic({ ...currentTopic, Priority: e.target.value as 'High' | 'Medium' | 'Low' })} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" ><option>Low</option><option>Medium</option><option>High</option></select></div>
+              <div><label className="text-sm font-medium text-slate-400 block mb-1">Status</label><select value={currentTopic.status} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrentTopic({ ...currentTopic, status: e.target.value as 'To Do' | 'In Progress' | 'Done' })} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" ><option>To Do</option><option>In Progress</option><option>Done</option></select></div>
               <div><label className="text-sm font-medium text-slate-400 block mb-1">Notes</label><textarea placeholder="Key concepts, definitions, etc." value={currentTopic.Notes} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, Notes: e.target.value })} rows={4} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" ></textarea></div>
               <div><label className="text-sm font-medium text-slate-400 block mb-1">Practice Exercise</label><textarea placeholder="Coding challenge or task..." value={currentTopic.PracticeExercise} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, PracticeExercise: e.target.value })} rows={4} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"></textarea></div>
               <div><label className="text-sm font-medium text-slate-400 block mb-1">Knowledge Covered</label><textarea placeholder="What have you learned? Key takeaways..." value={currentTopic.KnowledgeCovered} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, KnowledgeCovered: e.target.value })} rows={5} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" ></textarea></div>
