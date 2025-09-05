@@ -17,28 +17,53 @@ interface Topic {
 
 type Category = string;
 
-// --- Helper function to parse CSV data ---
-export const parseCSV = (csvString: string): Partial<Topic>[] => {
-  const lines = csvString.trim().split('\n');
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim());
-  const records: Partial<Topic>[] = [];
+// --- Helper functions for data handling ---
 
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
-    if (values.length > 0) {
-      const record: Partial<Topic> = {};
-      headers.forEach((header, j) => {
-        let value = values[j] || '';
-        if (value.startsWith('"') && value.endsWith('"')) {
-          value = value.slice(1, -1);
-        }
-        (record as any)[header] = value;
-      });
-      records.push(record);
+// More robust CSV parser
+export const parseCSV = (csvString: string): Record<string, string>[] => {
+    const lines = csvString.trim().split('\n');
+    if (lines.length < 2) return [];
+
+    const headers = lines[0].split(',').map(h => h.trim());
+    
+    return lines.slice(1).map(line => {
+        // Handles quoted fields with commas
+        const values = line.split(/,(?=(?:(?:[^""]*\"){2})*[^""]*$)/);
+        
+        const record: Record<string, string> = {};
+        headers.forEach((header, i) => {
+            const value = values[i] || '';
+            // Remove quotes from quoted fields
+            record[header] = value.startsWith('"') && value.endsWith('"') ? value.slice(1, -1) : value;
+        });
+        return record;
+    }).filter(record => Object.values(record).some(value => value)); // Filter out empty rows
+};
+
+// Validator and default value setter for a Topic
+export const validateTopic = (parsedRow: Record<string, string>): Topic => {
+    const id = parsedRow.id || crypto.randomUUID();
+    const category = parsedRow.Category || 'Uncategorized';
+    const topic = parsedRow.Topic || 'Untitled Topic';
+    
+    let priority: 'High' | 'Medium' | 'Low' = 'Medium';
+    if (['High', 'Medium', 'Low'].includes(parsedRow.Priority)) {
+        priority = parsedRow.Priority as 'High' | 'Medium' | 'Low';
     }
-  }
-  return records;
+
+    return {
+        id,
+        Category: category,
+        Topic: topic,
+        Priority: priority,
+        Notes: parsedRow.Notes || '',
+        PracticeExercise: parsedRow.PracticeExercise || '',
+        completed: parsedRow.completed === 'true' || false,
+        KnowledgeCovered: parsedRow.KnowledgeCovered || '',
+        status: ['To Do', 'In Progress', 'Done'].includes(parsedRow.status) 
+            ? parsedRow.status as 'To Do' | 'In Progress' | 'Done' 
+            : 'To Do',
+    };
 };
 
 // --- Main Application Component ---
@@ -69,18 +94,7 @@ export default function App() {
           .then(response => response.text())
           .then(csvText => {
             const parsedData = parseCSV(csvText);
-            const initialTopics: Topic[] = parsedData.map(topic => ({
-              ...topic,
-              id: topic.id || crypto.randomUUID(),
-              completed: false,
-              KnowledgeCovered: '',
-              Category: topic.Category || 'Uncategorized',
-              Topic: topic.Topic || 'Untitled',
-              Priority: topic.Priority || 'Medium',
-              Notes: topic.Notes || '',
-              PracticeExercise: topic.PracticeExercise || '',
-              status: 'To Do',
-            }));
+            const initialTopics: Topic[] = parsedData.map(validateTopic);
             setTopics(initialTopics);
 
             const initialCategories: Category[] = [...new Set(initialTopics.map(t => t.Category))];
@@ -304,7 +318,10 @@ export default function App() {
                           onDragStart={(e) => { e.stopPropagation(); handleDragStart(e, topic, 'TOPIC', topicIndex); }}
                           onDragOver={handleDragOver}
                           onDrop={(e) => { e.stopPropagation(); handleDrop(e, topic, 'TOPIC', topicIndex); }}
-                          className={`bg-slate-800 rounded-lg shadow-lg p-6 border-l-4 transition-all duration-300 cursor-grab${draggedItem && draggedItem.type === 'TOPIC' && 'id' in draggedItem.item && draggedItem.item.id === topic.id ? 'opacity-50' : ''} ${topic.completed ? 'border-green-500 opacity-60' : topic.Priority === 'High' ? 'border-red-500' : topic.Priority === 'Medium' ? 'border-yellow-500' : 'border-cyan-500'}`}
+                          className={`bg-slate-800 rounded-lg shadow-lg p-6 border-l-4 transition-all duration-300 cursor-grab${draggedItem 
+                            && draggedItem.type === 'TOPIC' 
+                            && typeof draggedItem.item !== 'string' 
+                            && draggedItem.item.id === topic.id ? 'opacity-50' : ''} ${topic.completed ? 'border-green-500 opacity-60' : topic.Priority === 'High' ? 'border-red-500' : topic.Priority === 'Medium' ? 'border-yellow-500' : 'border-cyan-500'}`}
                         >
                           <header className="flex justify-between items-start mb-3">
                             <span className="text-sm font-semibold text-cyan-400">{topic.Category}</span>
