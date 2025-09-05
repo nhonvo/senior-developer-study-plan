@@ -3,10 +3,6 @@ import React, { useState, useEffect } from 'react';
 import ViewSwitcher from './components/ViewSwitcher';
 import KanbanView from './components/KanbanView';
 
-// NOTE: The drag-and-drop functionality has been re-implemented using the browser's native
-// Drag and Drop API to remove the dependency on 'react-beautiful-dnd', which caused a compilation error.
-
-// --- TypeScript Interfaces ---
 interface Topic {
   id: string;
   Category: string;
@@ -20,19 +16,6 @@ interface Topic {
 }
 
 type Category = string;
-
-// Data parsed from the user's CSV file (first 10 records)
-const initialCsvData = `id,Category,Topic,Priority,Notes,PracticeExercise
-1,.NET & C# Advanced,"Garbage Collection (Generations, LOH, Finalization, IDisposable)",High,"Understand how the GC works to write memory-efficient code. Explain the Dispose pattern.","Create a class that wraps an unmanaged resource (like a file stream). Implement the IDisposable pattern correctly, including a finalizer. Write client code to demonstrate its use with a 'using' statement and explain why both Dispose and the finalizer are needed."
-2,.NET & C# Advanced,"Async/Await Deep Dive (State Machine, SynchronizationContext, ConfigureAwait)",High,"Be ready to explain the async state machine and demonstrate with code how a deadlock can occur (e.g., in a UI or classic ASP.NET context) and how ConfigureAwait(false) helps prevent it.","Create a simple Console App that calls an async method and blocks on the result (e.g., using .Result or .Wait()). Explain why it deadlocks in some environments. Modify the async method to use ConfigureAwait(false) and explain why that resolves the issue."
-3,.NET & C# Advanced,"LINQ Internals (IQueryable vs. IEnumerable, Deferred Execution)",High,"Explain how this impacts database queries with Entity Framework.","Using EF Core and an in-memory database, write a query against a DbSet<Product>. First, use .asEnumerable() before a .Where() clause and inspect the generated query. Then, write the same logic but use .AsQueryable() (or just chain the .Where() directly) and explain the difference in the executed SQL."
-4,.NET & C# Advanced,"Delegates, Events, Func<T>, Action<T>",High,"Understand common use cases like event-driven architecture and callbacks.","Create a 'Worker' class that performs a long-running operation. Define an event in this class called 'ProgressChanged'. Create a UI or Console class that subscribes to this event and reports the progress. Trigger the event from within the worker's operation."
-5,.NET & C# Advanced,"Dependency Injection (Scopes: Singleton, Scoped, Transient)",High,"Explain the differences and when to use each scope in an ASP.NET Core application.","In an ASP.NET Core API, create a simple service interface (e.g., IOperationLogger) and an implementation that has a unique ID (e.g., a Guid) set in its constructor. Register this service three times: once as Singleton, once as Scoped, and once as Transient. Inject all three into a controller and log their unique IDs on a single request to demonstrate the lifetime differences."
-6,.NET & C# Advanced,"Memory Management (Stack vs. Heap, Value vs. Reference Types, Boxing/Unboxing)",High,"Focus on the performance implications of each.","Write a function that takes an ArrayList (which stores objects) and adds a large number of integers (e.g., 1 million) to it. Then, write a second function that does the same thing but with a List<int>. Use a Stopwatch to measure the performance difference and explain why boxing/unboxing in the first function causes the overhead."
-7,.NET & C# Advanced,.NET Generic Host & Application Lifetime,Medium,"Explain how background services and the application are managed in .NET Core.","Create a .NET Core Worker Service project. Implement a background service (IHostedService) that logs a message every 5 seconds. Configure it in Program.cs and explain how the Generic Host manages the startup and graceful shutdown of your service."
-8,.NET & C# Advanced,Multithreading vs. Asynchronous Programming,High,"Clarify the difference and when to use constructs like Task, Thread, Parallel.For.","Write a method that processes a list of 100 items. Implement three versions: 1) a simple for-loop, 2) using Parallel.ForEach, and 3) using a list of Tasks with Task.WhenAll. For each item, simulate I/O-bound work (Task.Delay) and CPU-bound work (a tight loop). Discuss the performance and resource usage of each approach."
-9,ASP.NET Core,Middleware Pipeline,High,"Explain how the request pipeline is built and the importance of middleware ordering.","Create a custom middleware component that logs the request path and a custom response header. Register it in the pipeline. Then, register a second piece of middleware that short-circuits the pipeline (doesn't call next). Demonstrate how changing the order of these two middleware components affects the application's behavior."
-`;
 
 // --- Helper function to parse CSV data ---
 export const parseCSV = (csvString: string): Partial<Topic>[] => {
@@ -82,42 +65,31 @@ export default function App() {
         setCategories(JSON.parse(storedCategories));
         setCollapsedCategories(storedCollapsed ? JSON.parse(storedCollapsed) : []);
       } else {
-        const parsedData = parseCSV(initialCsvData);
-        const initialTopics: Topic[] = parsedData.map(topic => ({
-          ...topic,
-          id: topic.id || crypto.randomUUID(),
-          completed: false,
-          KnowledgeCovered: '',
-          Category: topic.Category || 'Uncategorized',
-          Topic: topic.Topic || 'Untitled',
-          Priority: topic.Priority || 'Medium',
-          Notes: topic.Notes || '',
-          PracticeExercise: topic.PracticeExercise || '',
-          status: 'To Do',
-        }));
-        setTopics(initialTopics);
+        fetch('/data.csv')
+          .then(response => response.text())
+          .then(csvText => {
+            const parsedData = parseCSV(csvText);
+            const initialTopics: Topic[] = parsedData.map(topic => ({
+              ...topic,
+              id: topic.id || crypto.randomUUID(),
+              completed: false,
+              KnowledgeCovered: '',
+              Category: topic.Category || 'Uncategorized',
+              Topic: topic.Topic || 'Untitled',
+              Priority: topic.Priority || 'Medium',
+              Notes: topic.Notes || '',
+              PracticeExercise: topic.PracticeExercise || '',
+              status: 'To Do',
+            }));
+            setTopics(initialTopics);
 
-        const initialCategories: Category[] = [...new Set(initialTopics.map(t => t.Category))];
-        setCategories(initialCategories);
+            const initialCategories: Category[] = [...new Set(initialTopics.map(t => t.Category))];
+            setCategories(initialCategories);
+          })
+          .catch(error => console.error("Error loading CSV data:", error));
       }
     } catch (error) {
       console.error("Failed to load or parse data:", error);
-      const parsedData = parseCSV(initialCsvData);
-      const initialTopics: Topic[] = parsedData.map(topic => ({
-        ...topic,
-        id: topic.id || crypto.randomUUID(),
-        completed: false,
-        KnowledgeCovered: '',
-        Category: topic.Category || 'Uncategorized',
-        Topic: topic.Topic || 'Untitled',
-        Priority: topic.Priority || 'Medium',
-        Notes: topic.Notes || '',
-        PracticeExercise: topic.PracticeExercise || '',
-        status: 'To Do',
-      }));
-      setTopics(initialTopics);
-      const initialCategories = [...new Set(initialTopics.map(t => t.Category))];
-      setCategories(initialCategories);
     }
   }, []);
 
@@ -368,8 +340,8 @@ export default function App() {
             <div className="space-y-4">
               <div><label className="text-sm font-medium text-slate-400 block mb-1">Category</label><input type="text" placeholder="e.g., ASP.NET Core" value={currentTopic.Category} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentTopic({ ...currentTopic, Category: e.target.value })} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" /></div>
               <div><label className="text-sm font-medium text-slate-400 block mb-1">Topic</label><input type="text" placeholder="e.g., Middleware Pipeline" value={currentTopic.Topic} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentTopic({ ...currentTopic, Topic: e.target.value })} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" /></div>
-              <div><label className="text-sm font-medium text-slate-400 block mb-1">Priority</label><select value={currentTopic.Priority} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrentTopic({ ...currentTopic, Priority: e.target.value as 'High' | 'Medium' | 'Low' })} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" ><option>Low</option><option>Medium</option><option>High</option></select></div>
-              <div><label className="text-sm font-medium text-slate-400 block mb-1">Status</label><select value={currentTopic.status} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrentTopic({ ...currentTopic, status: e.target.value as 'To Do' | 'In Progress' | 'Done' })} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" ><option>To Do</option><option>In Progress</option><option>Done</option></select></div>
+              <div><label className="text-sm font-medium text-slate-400 block mb-1">Priority</label><select title='High, Medium, Low' value={currentTopic.Priority} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrentTopic({ ...currentTopic, Priority: e.target.value as 'High' | 'Medium' | 'Low' })} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" ><option>Low</option><option>Medium</option><option>High</option></select></div>
+              <div><label className="text-sm font-medium text-slate-400 block mb-1">Status</label><select title='To Do, In Progress, Done' value={currentTopic.status} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrentTopic({ ...currentTopic, status: e.target.value as 'To Do' | 'In Progress' | 'Done' })} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" ><option>To Do</option><option>In Progress</option><option>Done</option></select></div>
               <div><label className="text-sm font-medium text-slate-400 block mb-1">Notes</label><textarea placeholder="Key concepts, definitions, etc." value={currentTopic.Notes} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, Notes: e.target.value })} rows={4} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" ></textarea></div>
               <div><label className="text-sm font-medium text-slate-400 block mb-1">Practice Exercise</label><textarea placeholder="Coding challenge or task..." value={currentTopic.PracticeExercise} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, PracticeExercise: e.target.value })} rows={4} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"></textarea></div>
               <div><label className="text-sm font-medium text-slate-400 block mb-1">Knowledge Covered</label><textarea placeholder="What have you learned? Key takeaways..." value={currentTopic.KnowledgeCovered} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, KnowledgeCovered: e.target.value })} rows={5} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" ></textarea></div>
