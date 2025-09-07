@@ -1,19 +1,6 @@
-
 "use client";
 import React, { useState } from 'react';
-
-// --- TypeScript Interfaces ---
-interface Topic {
-  id: string;
-  Category: string;
-  Topic: string;
-  Priority: 'High' | 'Medium' | 'Low';
-  Notes: string;
-  PracticeExercise: string;
-  completed: boolean;
-  KnowledgeCovered: string;
-  status: 'To Do' | 'In Progress' | 'Done';
-}
+import { Topic } from '../types';
 
 interface KanbanViewProps {
   topics: Topic[];
@@ -49,10 +36,14 @@ const KanbanColumn: React.FC<{
             key={topic.id}
             draggable
             onDragStart={(e) => onDragStart(e, topic)}
-            className="bg-slate-700 rounded-lg p-4 cursor-grab"
+            onClick={() => window.open(topic.link, '_blank')}
+            className="bg-slate-700 rounded-lg p-4 cursor-pointer"
           >
             <h4 className="font-bold text-slate-100">{topic.Topic}</h4>
             <p className="text-sm text-slate-400">{topic.Category}</p>
+            <div className="mt-2">
+              <button onClick={(e) => {e.stopPropagation(); navigator.clipboard.writeText(`Topic: ${topic.Topic}\n\nNotes: ${topic.Notes}\n\nPractice Exercise: ${topic.PracticeExercise}`); alert('Copied to clipboard!')}} className="text-cyan-400 hover:text-cyan-300 transition font-medium text-sm ml-2">Copy Info</button>
+            </div>
           </div>
         ))}
       </div>

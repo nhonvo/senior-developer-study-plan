@@ -2,18 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import ViewSwitcher from './components/ViewSwitcher';
 import KanbanView from './components/KanbanView';
-
-interface Topic {
-  id: string;
-  Category: string;
-  Topic: string;
-  Priority: 'High' | 'Medium' | 'Low';
-  Notes: string;
-  PracticeExercise: string;
-  completed: boolean;
-  KnowledgeCovered: string;
-  status: 'To Do' | 'In Progress' | 'Done';
-}
+import { Topic } from './types';
 
 type Category = string;
 
@@ -21,49 +10,49 @@ type Category = string;
 
 // More robust CSV parser
 export const parseCSV = (csvString: string): Record<string, string>[] => {
-    const lines = csvString.trim().split('\n');
-    if (lines.length < 2) return [];
+  const lines = csvString.trim().split('\n');
+  if (lines.length < 2) return [];
 
-    const headers = lines[0].split(',').map(h => h.trim());
-    
-    return lines.slice(1).map(line => {
-        // Handles quoted fields with commas
-        const values = line.split(/,(?=(?:(?:[^""]*\"){2})*[^""]*$)/);
-        
-        const record: Record<string, string> = {};
-        headers.forEach((header, i) => {
-            const value = values[i] || '';
-            // Remove quotes from quoted fields
-            record[header] = value.startsWith('"') && value.endsWith('"') ? value.slice(1, -1) : value;
-        });
-        return record;
-    }).filter(record => Object.values(record).some(value => value)); // Filter out empty rows
+  const headers = lines[0].split(',').map(h => h.trim());
+
+  return lines.slice(1).map(line => {
+    // Handles quoted fields with commas
+    const values = line.split(/,(?=(?:(?:[^""]*\"){2})*[^""]*$)/);
+
+    const record: Record<string, string> = {};
+    headers.forEach((header, i) => {
+      const value = values[i] || '';
+      // Remove quotes from quoted fields
+      record[header] = value.startsWith('"') && value.endsWith('"') ? value.slice(1, -1) : value;
+    });
+    return record;
+  }).filter(record => Object.values(record).some(value => value)); // Filter out empty rows
 };
 
 // Validator and default value setter for a Topic
 export const validateTopic = (parsedRow: Record<string, string>): Topic => {
-    const id = parsedRow.id || crypto.randomUUID();
-    const category = parsedRow.Category || 'Uncategorized';
-    const topic = parsedRow.Topic || 'Untitled Topic';
-    
-    let priority: 'High' | 'Medium' | 'Low' = 'Medium';
-    if (['High', 'Medium', 'Low'].includes(parsedRow.Priority)) {
-        priority = parsedRow.Priority as 'High' | 'Medium' | 'Low';
-    }
+  const id = parsedRow.id || crypto.randomUUID();
+  const category = parsedRow.Category || 'Uncategorized';
+  const topic = parsedRow.Topic || 'Untitled Topic';
 
-    return {
-        id,
-        Category: category,
-        Topic: topic,
-        Priority: priority,
-        Notes: parsedRow.Notes || '',
-        PracticeExercise: parsedRow.PracticeExercise || '',
-        completed: parsedRow.completed === 'true' || false,
-        KnowledgeCovered: parsedRow.KnowledgeCovered || '',
-        status: ['To Do', 'In Progress', 'Done'].includes(parsedRow.status) 
-            ? parsedRow.status as 'To Do' | 'In Progress' | 'Done' 
-            : 'To Do',
-    };
+  let priority: 'High' | 'Medium' | 'Low' = 'Medium';
+  if (['High', 'Medium', 'Low'].includes(parsedRow.Priority)) {
+    priority = parsedRow.Priority as 'High' | 'Medium' | 'Low';
+  }
+
+  return {
+    id,
+    Category: category,
+    Topic: topic,
+    Priority: priority,
+    Notes: parsedRow.Notes || '',
+    PracticeExercise: parsedRow.PracticeExercise || '',
+    completed: parsedRow.completed === 'true' || false,
+    KnowledgeCovered: parsedRow.KnowledgeCovered || '',
+    status: ['To Do', 'In Progress', 'Done'].includes(parsedRow.status)
+      ? parsedRow.status as 'To Do' | 'In Progress' | 'Done'
+      : 'To Do',
+  };
 };
 
 // --- Main Application Component ---
@@ -318,9 +307,9 @@ export default function App() {
                           onDragStart={(e) => { e.stopPropagation(); handleDragStart(e, topic, 'TOPIC', topicIndex); }}
                           onDragOver={handleDragOver}
                           onDrop={(e) => { e.stopPropagation(); handleDrop(e, topic, 'TOPIC', topicIndex); }}
-                          className={`bg-slate-800 rounded-lg shadow-lg p-6 border-l-4 transition-all duration-300 cursor-grab${draggedItem 
-                            && draggedItem.type === 'TOPIC' 
-                            && typeof draggedItem.item !== 'string' 
+                          className={`bg-slate-800 rounded-lg shadow-lg p-6 border-l-4 transition-all duration-300 cursor-grab${draggedItem
+                            && draggedItem.type === 'TOPIC'
+                            && typeof draggedItem.item !== 'string'
                             && draggedItem.item.id === topic.id ? 'opacity-50' : ''} ${topic.completed ? 'border-green-500 opacity-60' : topic.Priority === 'High' ? 'border-red-500' : topic.Priority === 'Medium' ? 'border-yellow-500' : 'border-cyan-500'}`}
                         >
                           <header className="flex justify-between items-start mb-3">
@@ -334,8 +323,15 @@ export default function App() {
                             <div><h4 className="font-semibold text-slate-400 mb-1">Knowledge Covered</h4><p className="text-slate-300 whitespace-pre-wrap bg-slate-900/50 p-3 rounded-md">{topic.KnowledgeCovered || 'No knowledge notes recorded yet.'}</p></div>
                           </div>
                           <footer className="mt-6 pt-4 border-t border-slate-700 flex justify-between items-center">
-                            <div className="flex items-center"><input type="checkbox" checked={topic.completed} onChange={() => handleToggleComplete(topic.id)} className="h-5 w-5 rounded bg-slate-600 border-slate-500 text-cyan-500 focus:ring-cyan-600 cursor-pointer" id={`complete-${topic.id}`} /><label htmlFor={`complete-${topic.id}`} className="ml-2 text-sm text-slate-400 cursor-pointer">Mark as Completed</label></div>
-                            <div className="space-x-3"><button onClick={() => handleEditTopic(topic)} className="text-cyan-400 hover:text-cyan-300 transition font-medium">Edit</button><button onClick={() => handleDelete(topic.id)} className="text-red-500 hover:text-red-400 transition font-medium">Delete</button></div>
+                            <div className="flex items-center">
+                              <input type="checkbox" checked={topic.completed} onChange={(e) => {e.stopPropagation(); handleToggleComplete(topic.id)}} className="h-6 w-6 rounded bg-slate-600 border-slate-500 text-cyan-500 focus:ring-cyan-600 cursor-pointer" id={`complete-${topic.id}`} />
+                              <label htmlFor={`complete-${topic.id}`} className="ml-2 text-lg text-slate-400 cursor-pointer">Mark as To-Do</label>
+                            </div>
+                            <div className="space-x-3">
+                              <button onClick={(e) => {e.stopPropagation(); navigator.clipboard.writeText(`Topic: ${topic.Topic}\n\nNotes: ${topic.Notes}\n\nPractice Exercise: ${topic.PracticeExercise}`); alert('Copied to clipboard!')}} className="text-cyan-400 hover:text-cyan-300 transition font-medium">Copy Info</button>
+                              <button onClick={(e) => {e.stopPropagation(); handleEditTopic(topic)}} className="text-cyan-400 hover:text-cyan-300 transition font-medium">Edit</button>
+                              <button onClick={(e) => {e.stopPropagation(); handleDelete(topic.id)}} className="text-red-500 hover:text-red-400 transition font-medium">Delete</button>
+                            </div>
                           </footer>
                         </div>
                       ))}
