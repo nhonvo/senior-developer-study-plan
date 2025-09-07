@@ -52,6 +52,7 @@ export const validateTopic = (parsedRow: Record<string, string>): Topic => {
     status: ['To Do', 'In Progress', 'Done'].includes(parsedRow.status)
       ? parsedRow.status as 'To Do' | 'In Progress' | 'Done'
       : 'To Do',
+    link: parsedRow.link || ''
   };
 };
 
@@ -135,7 +136,7 @@ export default function App() {
   };
 
   const handleAddTopic = () => {
-    setCurrentTopic({ id: '', Category: '', Topic: '', Priority: 'Medium', Notes: '', PracticeExercise: '', KnowledgeCovered: '', completed: false, status: 'To Do' });
+    setCurrentTopic({ id: '', Category: '', Topic: '', Priority: 'Medium', Notes: '', PracticeExercise: '', KnowledgeCovered: '', completed: false, status: 'To Do', link: '' });
     setIsModalOpen(true);
   };
 
@@ -304,6 +305,7 @@ export default function App() {
                         <div
                           key={topic.id}
                           draggable
+                          onClick={() => window.open(topic.link, '_blank')}
                           onDragStart={(e) => { e.stopPropagation(); handleDragStart(e, topic, 'TOPIC', topicIndex); }}
                           onDragOver={handleDragOver}
                           onDrop={(e) => { e.stopPropagation(); handleDrop(e, topic, 'TOPIC', topicIndex); }}
@@ -324,13 +326,13 @@ export default function App() {
                           </div>
                           <footer className="mt-6 pt-4 border-t border-slate-700 flex justify-between items-center">
                             <div className="flex items-center">
-                              <input type="checkbox" checked={topic.completed} onChange={(e) => {e.stopPropagation(); handleToggleComplete(topic.id)}} className="h-6 w-6 rounded bg-slate-600 border-slate-500 text-cyan-500 focus:ring-cyan-600 cursor-pointer" id={`complete-${topic.id}`} />
-                              <label htmlFor={`complete-${topic.id}`} className="ml-2 text-lg text-slate-400 cursor-pointer">Mark as To-Do</label>
+                              <input type="checkbox" checked={topic.completed} onChange={(e) => { e.stopPropagation(); handleToggleComplete(topic.id) }} className="h-6 w-6 rounded bg-slate-600 border-slate-500 text-cyan-500 focus:ring-cyan-600 cursor-pointer" id={`complete-${topic.id}`} />
+                              <label htmlFor={`complete-${topic.id}`} className="ml-2 text-lg text-slate-400 cursor-pointer">Mark as Completed</label>
                             </div>
                             <div className="space-x-3">
-                              <button onClick={(e) => {e.stopPropagation(); navigator.clipboard.writeText(`Topic: ${topic.Topic}\n\nNotes: ${topic.Notes}\n\nPractice Exercise: ${topic.PracticeExercise}`); alert('Copied to clipboard!')}} className="text-cyan-400 hover:text-cyan-300 transition font-medium">Copy Info</button>
-                              <button onClick={(e) => {e.stopPropagation(); handleEditTopic(topic)}} className="text-cyan-400 hover:text-cyan-300 transition font-medium">Edit</button>
-                              <button onClick={(e) => {e.stopPropagation(); handleDelete(topic.id)}} className="text-red-500 hover:text-red-400 transition font-medium">Delete</button>
+                              <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`Topic: ${topic.Topic}\n\nNotes: ${topic.Notes}\n\nPractice Exercise: ${topic.PracticeExercise}`); alert('Copied to clipboard!') }} className="bg-cyan-700 hover:bg-cyan-600 text-white font-bold py-1 px-3 rounded-md transition-transform transform hover:scale-105 shadow-sm text-sm">Copy Info</button>
+                              <button onClick={(e) => { e.stopPropagation(); handleEditTopic(topic) }} className="bg-cyan-700 hover:bg-cyan-600 text-white font-bold py-1 px-3 rounded-md transition-transform transform hover:scale-105 shadow-sm text-sm">Edit</button>
+                              <button onClick={(e) => { e.stopPropagation(); handleDelete(topic.id) }} className="bg-red-700 hover:bg-red-600 text-white font-bold py-1 px-3 rounded-md transition-transform transform hover:scale-105 shadow-sm text-sm">Delete</button>
                             </div>
                           </footer>
                         </div>

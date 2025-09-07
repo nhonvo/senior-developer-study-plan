@@ -8,5 +8,5 @@ export interface Topic {
   completed: boolean;
   KnowledgeCovered: string;
   status: 'To Do' | 'In Progress' | 'Done';
-  link?: string;
+  link: string;
 }
