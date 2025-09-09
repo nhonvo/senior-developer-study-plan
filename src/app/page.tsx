@@ -67,6 +67,8 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [draggedItem, setDraggedItem] = useState<{ item: Topic | Category; type: 'TOPIC' | 'CATEGORY'; index: number } | null>(null);
   const [currentView, setCurrentView] = useState<'list' | 'kanban'>('list');
+  const [isCompact, setIsCompact] = useState(false);
+  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
 
   // --- Data Loading and Structuring ---
   useEffect(() => {
@@ -115,12 +117,6 @@ export default function App() {
   }, [topics, categories, collapsedCategories]);
 
   // --- CRUD and Event Handlers ---
-  const handleToggleComplete = (id: string) => {
-    setTopics(topics.map(topic =>
-      topic.id === id ? { ...topic, completed: !topic.completed, status: !topic.completed ? 'Done' : 'To Do' } : topic
-    ));
-  };
-
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this topic?')) {
       const topicToDelete = topics.find(t => t.id === id);
@@ -236,6 +232,31 @@ export default function App() {
     setDraggedItem(null);
   };
 
+  const handleSelectTopic = (topicId: string) => {
+    setSelectedTopics(prevSelected =>
+      prevSelected.includes(topicId)
+        ? prevSelected.filter(id => id !== topicId)
+        : [...prevSelected, topicId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    setSelectedTopics(topics.map(topic => topic.id));
+  };
+
+  const handleUnselectAll = () => {
+    setSelectedTopics([]);
+  };
+
+  const handleUpdateStatusForSelected = (status: 'To Do' | 'In Progress' | 'Done') => {
+    setTopics(prevTopics =>
+      prevTopics.map(topic =>
+        selectedTopics.includes(topic.id) ? { ...topic, status, completed: status === 'Done' } : topic
+      )
+    );
+    setSelectedTopics([]);
+  };
+
   // --- Filtering and Progress Calculation ---
   const filteredTopics = topics.filter(topic =>
     (topic.Topic || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -244,7 +265,7 @@ export default function App() {
 
   const getTopicsForCategory = (category: Category) => {
     return topics.filter(t => t.Category === category)
-      .filter(t => !searchTerm || filteredTopics.some(ft => ft.id === t.id));
+      .filter(t => !searchTerm || filteredTopics.some(ft => ft.id === t.id))
   }
 
   const completedCount = topics.filter(t => t.completed).length;
@@ -284,6 +305,19 @@ export default function App() {
 
         {currentView === 'list' ? (
           <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4 flex-wrap">
+                <button onClick={handleSelectAll} className="bg-cyan-500 text-white px-4 py-2 rounded-lg">Select All</button>
+                <button onClick={handleUnselectAll} className="bg-cyan-500 text-white px-4 py-2 rounded-lg">Unselect All</button>
+                <button onClick={() => handleUpdateStatusForSelected('To Do')} className="bg-yellow-500 text-white px-4 py-2 rounded-lg">Mark as To Do</button>
+                <button onClick={() => handleUpdateStatusForSelected('In Progress')} className="bg-blue-500 text-white px-4 py-2 rounded-lg">Mark as In Progress</button>
+                <button onClick={() => handleUpdateStatusForSelected('Done')} className="bg-green-500 text-white px-4 py-2 rounded-lg">Mark as Complete</button>
+              </div>
+              <div className="flex items-center">
+                <input type="checkbox" id="compactView" checked={isCompact} onChange={() => setIsCompact(!isCompact)} className="mr-2" />
+                <label htmlFor="compactView">Compact View</label>
+              </div>
+            </div>
             {categories.map((category, index) => {
               const topicsForCategory = getTopicsForCategory(category);
               const isCollapsed = collapsedCategories.includes(category);
@@ -303,62 +337,67 @@ export default function App() {
                     <svg className={`w-7 h-7 text-gray-500 transform transition-transform ${!isCollapsed ? 'rotate-180' : ''} `} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                   </div>
                   {!isCollapsed && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 sm:grid-cols-1">
+                    <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 sm:grid-cols-1 ${isCompact ? 'xl:grid-cols-4' : ''}`}>
                       {topicsForCategory.map((topic, topicIndex) => (
                         <div
                           key={topic.id}
                           draggable
                           onDragStart={(e) => { e.stopPropagation(); handleDragStart(e, topic, 'TOPIC', topicIndex); }}
                           onDragOver={handleDragOver}
+                          onClick={() => handleSelectTopic(topic.id)}
                           onDrop={(e) => { e.stopPropagation(); handleDrop(e, topic, 'TOPIC', topicIndex); }}
                           className={`relative p-6 rounded-lg transition-all duration-300 border border-gray-200 dark:border-gray-700 ${draggedItem
                             && draggedItem.type === 'TOPIC'
                             && typeof draggedItem.item !== 'string'
-                            && draggedItem.item.id === topic.id ? 'opacity-50' : ''} ${topic.completed ? 'bg-green-50 dark:bg-green-950 border-green-300 dark:border-green-700' : 'bg-white dark:bg-gray-800'}`}>
+                            && draggedItem.item.id === topic.id ? 'opacity-50' : ''} ${selectedTopics.includes(topic.id) ? 'ring-2 ring-cyan-400' : ''} ${topic.completed ? 'bg-green-50 dark:bg-green-950 border-green-300 dark:border-green-700' : 'bg-white dark:bg-gray-800'} ${isCompact ? 'p-3' : 'p-6'}`}>
                           <header className="flex justify-between items-start mb-4">
-                            <h2 className={`text-2xl font-bold text-gray-800 dark:text-gray-100 ${topic.completed ? 'line-through text-gray-500 dark:text-gray-400' : ''} `}>{topic.Topic}</h2>
-                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${topic.Priority === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' : topic.Priority === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'} `}>{topic.Priority}</span>
+                            <h2 className={`text-2xl font-bold text-gray-800 dark:text-gray-100 ${topic.completed ? 'line-through text-gray-500 dark:text-gray-400' : ''} ${isCompact ? 'text-lg' : 'text-2xl'}`}>{topic.Topic}</h2>
+                            {!isCompact && <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${topic.Priority === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' : topic.Priority === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'} `}>{topic.Priority}</span>}
                           </header>
                           <div className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 space-y-4">
                             <div><h4 className="font-semibold text-gray-600 dark:text-gray-400 mb-1">Notes</h4><p className="whitespace-pre-wrap">{topic.Notes || 'N/A'}</p></div>
-                            <div className="mt-4">
-                              <h4 className="font-semibold text-gray-600 dark:text-gray-400 mb-2">Practice Exercise</h4>
-                              <div className="p-4 bg-gray-100 dark:bg-gray-900 rounded-md">
-                                <p className="whitespace-pre-wrap font-mono text-sm">{topic.PracticeExercise || 'No practice exercise available.'}</p>
+                            {!isCompact && <>
+                              <div className="mt-4">
+                                <h4 className="font-semibold text-gray-600 dark:text-gray-400 mb-2">Practice Exercise</h4>
+                                <div className="p-4 bg-gray-100 dark:bg-gray-900 rounded-md">
+                                  <p className="whitespace-pre-wrap font-mono text-sm">{topic.PracticeExercise || 'No practice exercise available.'}</p>
+                                </div>
                               </div>
-                            </div>
-                            <div className="mt-4">
-                              <h4 className="font-semibold text-gray-600 dark:text-gray-400 mb-2">Knowledge Covered</h4>
-                              <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-md">
-                                <p className="whitespace-pre-wrap text-sm">{topic.KnowledgeCovered || 'No knowledge notes recorded yet.'}</p>
+                              <div className="mt-4">
+                                <h4 className="font-semibold text-gray-600 dark:text-gray-400 mb-2">Knowledge Covered</h4>
+                                <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-md">
+                                  <p className="whitespace-pre-wrap text-sm">{topic.KnowledgeCovered || 'No knowledge notes recorded yet.'}</p>
+                                </div>
                               </div>
-                            </div>
+                            </>}
                           </div>
                           <footer className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
                             <div className="flex items-center">
-                              <input type="checkbox" checked={topic.completed} onChange={(e) => { e.stopPropagation(); handleToggleComplete(topic.id) }} className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-blue-400 dark:focus:ring-blue-400 cursor-pointer" id={`complete-${topic.id}`} />
-                              <label htmlFor={`complete-${topic.id}`} className="ml-2 text-base text-gray-700 dark:text-gray-300 cursor-pointer">Mark as Completed</label>
+                              <input type="checkbox" checked={selectedTopics.includes(topic.id)} onChange={() => handleSelectTopic(topic.id)} className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-blue-400 dark:focus:ring-blue-400 cursor-pointer" id={`select-${topic.id}`} />
+                              <label htmlFor={`select-${topic.id}`} className="ml-2 text-base text-gray-700 dark:text-gray-300 cursor-pointer">Select</label>
                             </div>
-                            <div className="flex flex-wrap justify-center sm:justify-end gap-3">
-                              {topic.link && (
-                                <a href={topic.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900 transition-colors">
-                                  <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                                  Go to Link
-                                </a>
-                              )}
-                              <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`Topic: ${topic.Topic}\n\nNotes: ${topic.Notes}\n\nPractice Exercise: ${topic.PracticeExercise}\n\nKnowledge Covered: ${topic.KnowledgeCovered}`); }} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900 transition-colors">
-                                <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" /></svg>
-                                Copy Info
-                              </button>
-                              <button onClick={(e) => { e.stopPropagation(); handleEditTopic(topic) }} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900 transition-colors">
-                                <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-7.793 7.793A2 2 0 017.07 14.929L3.586 11.414A2 2 0 013.586 8.586l7.793-7.793zM15 6l2-2 1 1-2 2-1-1z" /></svg>
-                                Edit
-                              </button>
-                              <button onClick={(e) => { e.stopPropagation(); handleDelete(topic.id) }} className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-offset-gray-900 transition-colors">
-                                <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-1 1v1H5a1 1 0 000 2h1v8a2 2 0 002 2h4a2 2 0 002-2V6h1a1 1 0 100-2h-3V3a1 1 0 00-1-1H9zm1 2H9v1h2V4h-1zm-.5 3.5a.5.5 0 00-1 0v6a.5.5 0 001 0v-6zM11 7a.5.5 0 01.5.5v6a.5.5 0 01-1 0v-6a.5.5 0 01.5-.5z" clipRule="evenodd" /></svg>
-                                Delete
-                              </button>
-                            </div>
+                            {!isCompact &&
+                              <div className="flex flex-wrap justify-center sm:justify-end gap-3">
+                                {topic.link && (
+                                  <a href={topic.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900 transition-colors">
+                                    <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                                    Go to Link
+                                  </a>
+                                )}
+                                <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`Topic: ${topic.Topic}\n\nNotes: ${topic.Notes}\n\nPractice Exercise: ${topic.PracticeExercise}\n\nKnowledge Covered: ${topic.KnowledgeCovered}`); }} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900 transition-colors">
+                                  <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" /></svg>
+                                  Copy Info
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); handleEditTopic(topic) }} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900 transition-colors">
+                                  <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-7.793 7.793A2 2 0 017.07 14.929L3.586 11.414A2 2 0 013.586 8.586l7.793-7.793zM15 6l2-2 1 1-2 2-1-1z" /></svg>
+                                  Edit
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); handleDelete(topic.id) }} className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-offset-gray-900 transition-colors">
+                                  <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-1 1v1H5a1 1 0 000 2h1v8a2 2 0 002 2h4a2 2 0 002-2V6h1a1 1 0 100-2h-3V3a1 1 0 00-1-1H9zm1 2H9v1h2V4h-1zm-.5 3.5a.5.5 0 00-1 0v6a.5.5 0 001 0v-6zM11 7a.5.5 0 01.5.5v6a.5.5 0 01-1 0v-6a.5.5 0 01.5-.5z" clipRule="evenodd" /></svg>
+                                  Delete
+                                </button>
+                              </div>
+                            }
                           </footer>
                         </div>
                       ))}
