@@ -253,26 +253,31 @@ export default function App() {
 
   // --- Render ---
   return (
-    <div className="bg-slate-900 text-white min-h-screen font-sans p-4 sm:p-6 lg:p-8">
+    <div className="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-50 min-h-screen font-sans p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        <header className="text-center mb-8">
-          <h1 className="text-4xl sm:text-5xl font-bold text-cyan-400 mb-2">Senior Developer Study Plan</h1>
-          <p className="text-lg text-slate-400">Drag & drop to organize your learning path.</p>
+        <header className="text-center mb-12 pt-8">
+          <h1 className="text-5xl sm:text-6xl font-extrabold text-gray-800 dark:text-gray-100 leading-tight mb-4">Senior Developer Study Plan</h1>
+          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">Organize your learning path with a clean, intuitive interface.</p>
         </header>
 
-        <div className="mb-6 p-4 bg-slate-800 rounded-lg shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="relative w-full sm:w-1/2">
-            <input type="text" placeholder="Search by topic or category..." value={searchTerm} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-slate-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" />
-            <svg className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        <div className="mb-12 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="relative w-full sm:w-1/2 max-w-md">
+            <input type="text" placeholder="Search by topic or category..." value={searchTerm} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors" />
+            <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           </div>
-          <button onClick={handleAddTopic} className="w-full sm:w-auto bg-cyan-500 hover:bg-cyan-600 font-bold py-2 px-6 rounded-md transition-transform transform hover:scale-105 shadow-md">
+          <button onClick={handleAddTopic} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-full transition-colors transform hover:scale-105 shadow-lg">
             Add New Topic
           </button>
         </div>
 
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-1"><span className="text-sm font-medium text-slate-300">Progress</span><span className="text-sm font-medium text-slate-300">{completedCount} of {totalCount} completed</span></div>
-          <div className="w-full bg-slate-700 rounded-full h-2.5"><div className="bg-cyan-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${progressPercentage}% ` }}></div></div>
+        <div className="mb-12 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">Progress Overview</span>
+            <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">{completedCount} / {totalCount} Topics Completed</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
+            <div className="bg-blue-500 h-3 rounded-full transition-all duration-500" style={{ width: `${progressPercentage}%` }}></div>
+          </div>
         </div>
 
         <ViewSwitcher currentView={currentView} onViewChange={setCurrentView} />
@@ -282,57 +287,77 @@ export default function App() {
             {categories.map((category, index) => {
               const topicsForCategory = getTopicsForCategory(category);
               const isCollapsed = collapsedCategories.includes(category);
-              if (searchTerm && topicsForCategory.length === 0) return null;
+              if (topicsForCategory.length === 0 && searchTerm) return null;
 
               return (
-                <div key={category} className="mb-8"
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, category, 'CATEGORY', index)}>
+                <div key={category} className="mb-12 border-b border-gray-200 dark:border-gray-700 pb-8">
                   <div
                     draggable
                     onDragStart={(e) => handleDragStart(e, category, 'CATEGORY', index)}
                     onClick={() => handleToggleCategoryCollapse(category)}
-                    className={`flex items-center justify-between mb-4 p-2 rounded-md bg-slate-800 / 50 hover: bg-slate-700 / 50 cursor-pointer transition-opacity ${draggedItem && draggedItem.type === 'CATEGORY' && draggedItem.item === category ? 'opacity-50' : ''} `}>
+                    className={`flex items-center justify-between mb-6 cursor-pointer group ${draggedItem && draggedItem.type === 'CATEGORY' && draggedItem.item === category ? 'opacity-50' : ''} `}>
                     <div className="flex items-center cursor-grab">
-                      <svg className="w-5 h-5 text-slate-500 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-                      <h3 className="text-2xl font-bold text-slate-200">{category}</h3>
+                      <svg className="w-6 h-6 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 mr-3 transition-colors" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                      <h3 className="text-3xl font-bold text-gray-800 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{category}</h3>
                     </div>
-                    <svg className={`w-6 h-6 text-slate-400 transform transition-transform ${!isCollapsed ? 'rotate-180' : ''} `} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    <svg className={`w-7 h-7 text-gray-500 transform transition-transform ${!isCollapsed ? 'rotate-180' : ''} `} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                   </div>
                   {!isCollapsed && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 sm:grid-cols-1">
                       {topicsForCategory.map((topic, topicIndex) => (
                         <div
                           key={topic.id}
                           draggable
-                          onClick={() => window.open(topic.link, '_blank')}
                           onDragStart={(e) => { e.stopPropagation(); handleDragStart(e, topic, 'TOPIC', topicIndex); }}
                           onDragOver={handleDragOver}
                           onDrop={(e) => { e.stopPropagation(); handleDrop(e, topic, 'TOPIC', topicIndex); }}
-                          className={`bg-slate-800 rounded-lg shadow-lg p-6 border-l-4 transition-all duration-300 cursor-grab${draggedItem
+                          className={`relative p-6 rounded-lg transition-all duration-300 border border-gray-200 dark:border-gray-700 ${draggedItem
                             && draggedItem.type === 'TOPIC'
                             && typeof draggedItem.item !== 'string'
-                            && draggedItem.item.id === topic.id ? 'opacity-50' : ''} ${topic.completed ? 'border-green-500 opacity-60' : topic.Priority === 'High' ? 'border-red-500' : topic.Priority === 'Medium' ? 'border-yellow-500' : 'border-cyan-500'}`}
-                        >
-                          <header className="flex justify-between items-start mb-3">
-                            <span className="text-sm font-semibold text-cyan-400">{topic.Category}</span>
-                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${topic.Priority === 'High' ? 'bg-red-500/20 text-red-300' : topic.Priority === 'Medium' ? 'bg-yellow-500/20 text-yellow-300' : 'bg-green-500/20 text-green-300'} `}>{topic.Priority}</span>
+                            && draggedItem.item.id === topic.id ? 'opacity-50' : ''} ${topic.completed ? 'bg-green-50 dark:bg-green-950 border-green-300 dark:border-green-700' : 'bg-white dark:bg-gray-800'}`}>
+                          <header className="flex justify-between items-start mb-4">
+                            <h2 className={`text-2xl font-bold text-gray-800 dark:text-gray-100 ${topic.completed ? 'line-through text-gray-500 dark:text-gray-400' : ''} `}>{topic.Topic}</h2>
+                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${topic.Priority === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' : topic.Priority === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'} `}>{topic.Priority}</span>
                           </header>
-                          <h2 className={`text-xl font-bold text-slate-100 mb-4 ${topic.completed ? 'line-through' : ''} `}>{topic.Topic}</h2>
-                          <div className="space-y-4 text-sm">
-                            <div><h4 className="font-semibold text-slate-400 mb-1">Notes</h4><p className="text-slate-300 whitespace-pre-wrap">{topic.Notes || 'N/A'}</p></div>
-                            <div><h4 className="font-semibold text-slate-400 mb-1">Practice Exercise</h4><p className="text-slate-300 whitespace-pre-wrap">{topic.PracticeExercise || 'N/A'}</p></div>
-                            <div><h4 className="font-semibold text-slate-400 mb-1">Knowledge Covered</h4><p className="text-slate-300 whitespace-pre-wrap bg-slate-900/50 p-3 rounded-md">{topic.KnowledgeCovered || 'No knowledge notes recorded yet.'}</p></div>
-                          </div>
-                          <footer className="mt-6 pt-4 border-t border-slate-700 flex justify-between items-center">
-                            <div className="flex items-center">
-                              <input type="checkbox" checked={topic.completed} onChange={(e) => { e.stopPropagation(); handleToggleComplete(topic.id) }} className="h-6 w-6 rounded bg-slate-600 border-slate-500 text-cyan-500 focus:ring-cyan-600 cursor-pointer" id={`complete-${topic.id}`} />
-                              <label htmlFor={`complete-${topic.id}`} className="ml-2 text-lg text-slate-400 cursor-pointer">Mark as Completed</label>
+                          <div className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 space-y-4">
+                            <div><h4 className="font-semibold text-gray-600 dark:text-gray-400 mb-1">Notes</h4><p className="whitespace-pre-wrap">{topic.Notes || 'N/A'}</p></div>
+                            <div className="mt-4">
+                              <h4 className="font-semibold text-gray-600 dark:text-gray-400 mb-2">Practice Exercise</h4>
+                              <div className="p-4 bg-gray-100 dark:bg-gray-900 rounded-md">
+                                <p className="whitespace-pre-wrap font-mono text-sm">{topic.PracticeExercise || 'No practice exercise available.'}</p>
+                              </div>
                             </div>
-                            <div className="space-x-3">
-                              <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`Topic: ${topic.Topic}\n\nNotes: ${topic.Notes}\n\nPractice Exercise: ${topic.PracticeExercise}`); alert('Copied to clipboard!') }} className="bg-cyan-700 hover:bg-cyan-600 text-white font-bold py-1 px-3 rounded-md transition-transform transform hover:scale-105 shadow-sm text-sm">Copy Info</button>
-                              <button onClick={(e) => { e.stopPropagation(); handleEditTopic(topic) }} className="bg-cyan-700 hover:bg-cyan-600 text-white font-bold py-1 px-3 rounded-md transition-transform transform hover:scale-105 shadow-sm text-sm">Edit</button>
-                              <button onClick={(e) => { e.stopPropagation(); handleDelete(topic.id) }} className="bg-red-700 hover:bg-red-600 text-white font-bold py-1 px-3 rounded-md transition-transform transform hover:scale-105 shadow-sm text-sm">Delete</button>
+                            <div className="mt-4">
+                              <h4 className="font-semibold text-gray-600 dark:text-gray-400 mb-2">Knowledge Covered</h4>
+                              <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-md">
+                                <p className="whitespace-pre-wrap text-sm">{topic.KnowledgeCovered || 'No knowledge notes recorded yet.'}</p>
+                              </div>
+                            </div>
+                          </div>
+                          <footer className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <div className="flex items-center">
+                              <input type="checkbox" checked={topic.completed} onChange={(e) => { e.stopPropagation(); handleToggleComplete(topic.id) }} className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-blue-400 dark:focus:ring-blue-400 cursor-pointer" id={`complete-${topic.id}`} />
+                              <label htmlFor={`complete-${topic.id}`} className="ml-2 text-base text-gray-700 dark:text-gray-300 cursor-pointer">Mark as Completed</label>
+                            </div>
+                            <div className="flex flex-wrap justify-center sm:justify-end gap-3">
+                              {topic.link && (
+                                <a href={topic.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900 transition-colors">
+                                  <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                                  Go to Link
+                                </a>
+                              )}
+                              <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`Topic: ${topic.Topic}\n\nNotes: ${topic.Notes}\n\nPractice Exercise: ${topic.PracticeExercise}\n\nKnowledge Covered: ${topic.KnowledgeCovered}`); }} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900 transition-colors">
+                                <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" /></svg>
+                                Copy Info
+                              </button>
+                              <button onClick={(e) => { e.stopPropagation(); handleEditTopic(topic) }} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900 transition-colors">
+                                <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-7.793 7.793A2 2 0 017.07 14.929L3.586 11.414A2 2 0 013.586 8.586l7.793-7.793zM15 6l2-2 1 1-2 2-1-1z" /></svg>
+                                Edit
+                              </button>
+                              <button onClick={(e) => { e.stopPropagation(); handleDelete(topic.id) }} className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-offset-gray-900 transition-colors">
+                                <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-1 1v1H5a1 1 0 000 2h1v8a2 2 0 002 2h4a2 2 0 002-2V6h1a1 1 0 100-2h-3V3a1 1 0 00-1-1H9zm1 2H9v1h2V4h-1zm-.5 3.5a.5.5 0 00-1 0v6a.5.5 0 001 0v-6zM11 7a.5.5 0 01.5.5v6a.5.5 0 01-1 0v-6a.5.5 0 01.5-.5z" clipRule="evenodd" /></svg>
+                                Delete
+                              </button>
                             </div>
                           </footer>
                         </div>
@@ -350,20 +375,20 @@ export default function App() {
 
       {isModalOpen && currentTopic && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-2xl transform transition-all max-h-[90vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-            <h2 id="modal-title" className="text-2xl font-bold mb-4 text-cyan-400">{currentTopic.id ? 'Edit Topic' : 'Add New Topic'}</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-2xl transform transition-all max-h-[90vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+            <h2 id="modal-title" className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">{currentTopic.id ? 'Edit Topic' : 'Add New Topic'}</h2>
             <div className="space-y-4">
-              <div><label className="text-sm font-medium text-slate-400 block mb-1">Category</label><input type="text" placeholder="e.g., ASP.NET Core" value={currentTopic.Category} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentTopic({ ...currentTopic, Category: e.target.value })} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" /></div>
-              <div><label className="text-sm font-medium text-slate-400 block mb-1">Topic</label><input type="text" placeholder="e.g., Middleware Pipeline" value={currentTopic.Topic} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentTopic({ ...currentTopic, Topic: e.target.value })} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" /></div>
-              <div><label className="text-sm font-medium text-slate-400 block mb-1">Priority</label><select title='High, Medium, Low' value={currentTopic.Priority} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrentTopic({ ...currentTopic, Priority: e.target.value as 'High' | 'Medium' | 'Low' })} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" ><option>Low</option><option>Medium</option><option>High</option></select></div>
-              <div><label className="text-sm font-medium text-slate-400 block mb-1">Status</label><select title='To Do, In Progress, Done' value={currentTopic.status} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrentTopic({ ...currentTopic, status: e.target.value as 'To Do' | 'In Progress' | 'Done' })} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" ><option>To Do</option><option>In Progress</option><option>Done</option></select></div>
-              <div><label className="text-sm font-medium text-slate-400 block mb-1">Notes</label><textarea placeholder="Key concepts, definitions, etc." value={currentTopic.Notes} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, Notes: e.target.value })} rows={4} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" ></textarea></div>
-              <div><label className="text-sm font-medium text-slate-400 block mb-1">Practice Exercise</label><textarea placeholder="Coding challenge or task..." value={currentTopic.PracticeExercise} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, PracticeExercise: e.target.value })} rows={4} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"></textarea></div>
-              <div><label className="text-sm font-medium text-slate-400 block mb-1">Knowledge Covered</label><textarea placeholder="What have you learned? Key takeaways..." value={currentTopic.KnowledgeCovered} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, KnowledgeCovered: e.target.value })} rows={5} className="w-full bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500" ></textarea></div>
+              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Category</label><input type="text" placeholder="e.g., ASP.NET Core" value={currentTopic.Category} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentTopic({ ...currentTopic, Category: e.target.value })} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100" /></div>
+              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Topic</label><input type="text" placeholder="e.g., Middleware Pipeline" value={currentTopic.Topic} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentTopic({ ...currentTopic, Topic: e.target.value })} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100" /></div>
+              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Priority</label><select title='High, Medium, Low' value={currentTopic.Priority} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrentTopic({ ...currentTopic, Priority: e.target.value as 'High' | 'Medium' | 'Low' })} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100" ><option>Low</option><option>Medium</option><option>High</option></select></div>
+              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Status</label><select title='To Do, In Progress, Done' value={currentTopic.status} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrentTopic({ ...currentTopic, status: e.target.value as 'To Do' | 'In Progress' | 'Done' })} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100" ><option>To Do</option><option>In Progress</option><option>Done</option></select></div>
+              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Notes</label><textarea placeholder="Key concepts, definitions, etc." value={currentTopic.Notes} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, Notes: e.target.value })} rows={4} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100" ></textarea></div>
+              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Practice Exercise</label><textarea placeholder="Coding challenge or task..." value={currentTopic.PracticeExercise} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, PracticeExercise: e.target.value })} rows={4} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100"></textarea></div>
+              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Knowledge Covered</label><textarea placeholder="What have you learned? Key takeaways..." value={currentTopic.KnowledgeCovered} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, KnowledgeCovered: e.target.value })} rows={5} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100" ></textarea></div>
             </div>
             <div className="mt-6 flex justify-end space-x-4">
-              <button onClick={closeModal} className="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-md transition">Cancel</button>
-              <button onClick={handleSaveTopic} className="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-md transition">Save</button>
+              <button onClick={closeModal} className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-md transition-colors dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200">Cancel</button>
+              <button onClick={handleSaveTopic} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors">Save</button>
             </div>
           </div>
         </div>

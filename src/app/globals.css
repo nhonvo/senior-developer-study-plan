@@ -1,15 +1,9 @@
 @import "tailwindcss";
+@tailwind utilities;
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,5 +16,112 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), sans-serif;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-geist-sans), sans-serif;
+  margin-bottom: 0.5em;
+  line-height: 1.2;
+}
+
+p {
+  margin-bottom: 1em;
+}
+
+/* Custom styles for prose-like content */
+.prose {
+  color: var(--foreground);
+}
+
+.prose h1 {
+  font-size: 2.5em;
+  font-weight: 800;
+}
+
+.prose h2 {
+  font-size: 2em;
+  font-weight: 700;
+}
+
+.prose h3 {
+  font-size: 1.5em;
+  font-weight: 600;
+}
+
+.prose h4 {
+  font-size: 1.25em;
+  font-weight: 600;
+}
+
+.prose p {
+  font-size: 1.1em;
+  line-height: 1.75;
+}
+
+.prose ul,
+.prose ol {
+  margin-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.prose li {
+  margin-bottom: 0.5em;
+}
+
+.prose a {
+  color: #2563eb; /* blue-600 */
+  text-decoration: none;
+}
+
+.prose a:hover {
+  text-decoration: underline;
+}
+
+.prose strong {
+  font-weight: 700;
+}
+
+.prose code {
+  background-color: rgba(100, 100, 100, 0.1);
+  padding: 0.2em 0.4em;
+  border-radius: 0.3em;
+  font-family: var(--font-geist-mono), monospace;
+}
+
+.prose pre {
+  background-color: rgba(100, 100, 100, 0.1);
+  padding: 1em;
+  border-radius: 0.5em;
+  overflow-x: auto;
+}
+
+.dark .prose {
+  color: var(--foreground);
+}
+
+.dark .prose h1,
+.dark .prose h2,
+.dark .prose h3,
+.dark .prose h4,
+.dark .prose h5,
+.dark .prose h6 {
+  color: var(--foreground);
+}
+
+.dark .prose p {
+  color: var(--foreground);
+}
+
+.dark .prose a {
+  color: #60a5fa; /* blue-400 */
+}
+
+.dark .prose code {
+  background-color: rgba(200, 200, 200, 0.1);
+}
+
+.dark .prose pre {
+  background-color: rgba(200, 200, 200, 0.1);
 }
