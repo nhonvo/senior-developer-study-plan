@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ViewSwitcher from './components/ViewSwitcher';
 import KanbanView from './components/KanbanView';
 import { Topic } from './types';
@@ -69,6 +69,9 @@ export default function App() {
   const [currentView, setCurrentView] = useState<'list' | 'kanban'>('list');
   const [isCompact, setIsCompact] = useState(false);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+
+  // --- Refs for Indeterminate Checkboxes ---
+  const categoryCheckboxRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // --- Data Loading and Structuring ---
   useEffect(() => {
@@ -248,6 +251,15 @@ export default function App() {
     setSelectedTopics([]);
   };
 
+  const handleSelectCategory = (category: Category, isSelected: boolean) => {
+    const categoryTopics = getTopicsForCategory(category).map(t => t.id);
+    if (isSelected) {
+      setSelectedTopics(prev => [...new Set([...prev, ...categoryTopics])]);
+    } else {
+      setSelectedTopics(prev => prev.filter(id => !categoryTopics.includes(id)));
+    }
+  };
+
   const handleUpdateStatusForSelected = (status: 'To Do' | 'In Progress' | 'Done') => {
     setTopics(prevTopics =>
       prevTopics.map(topic =>
@@ -265,12 +277,24 @@ export default function App() {
 
   const getTopicsForCategory = (category: Category) => {
     return topics.filter(t => t.Category === category)
-      .filter(t => !searchTerm || filteredTopics.some(ft => ft.id === t.id))
+      .filter(t => !searchTerm || filteredTopics.some(ft => ft.id === t.id));
   }
 
   const completedCount = topics.filter(t => t.completed).length;
   const totalCount = topics.length;
   const progressPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+  // --- Set Indeterminate State for Category Checkboxes ---
+  useEffect(() => {
+    categories.forEach(category => {
+      const checkbox = categoryCheckboxRefs.current[category];
+      if (checkbox) {
+        const categoryTopics = getTopicsForCategory(category);
+        const selectedInCategory = categoryTopics.filter(t => selectedTopics.includes(t.id));
+        checkbox.indeterminate = selectedInCategory.length > 0 && selectedInCategory.length < categoryTopics.length;
+      }
+    });
+  }, [selectedTopics, categories, topics]);
 
   // --- Render ---
   return (
@@ -283,10 +307,10 @@ export default function App() {
 
         <div className="mb-12 flex flex-col sm:flex-row items-center justify-center gap-4">
           <div className="relative w-full sm:w-1/2 max-w-md">
-            <input type="text" placeholder="Search by topic or category..." value={searchTerm} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors" />
+            <input type="text" placeholder="Search by topic or category..." value={searchTerm} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:focus:ring-cyan-400 transition-colors" />
             <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           </div>
-          <button onClick={handleAddTopic} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-full transition-colors transform hover:scale-105 shadow-lg">
+          <button onClick={handleAddTopic} className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-6 rounded-full transition-colors transform hover:scale-105 shadow-lg">
             Add New Topic
           </button>
         </div>
@@ -297,7 +321,7 @@ export default function App() {
             <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">{completedCount} / {totalCount} Topics Completed</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
-            <div className="bg-blue-500 h-3 rounded-full transition-all duration-500" style={{ width: `${progressPercentage}%` }}></div>
+            <div className="bg-cyan-500 h-3 rounded-full transition-all duration-500" style={{ width: `${progressPercentage}%` }}></div>
           </div>
         </div>
 
@@ -307,34 +331,50 @@ export default function App() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-4 flex-wrap">
-                <button onClick={handleSelectAll} className="bg-cyan-500 text-white px-4 py-2 rounded-lg">Select All</button>
-                <button onClick={handleUnselectAll} className="bg-cyan-500 text-white px-4 py-2 rounded-lg">Unselect All</button>
-                <button onClick={() => handleUpdateStatusForSelected('To Do')} className="bg-yellow-500 text-white px-4 py-2 rounded-lg">Mark as To Do</button>
-                <button onClick={() => handleUpdateStatusForSelected('In Progress')} className="bg-blue-500 text-white px-4 py-2 rounded-lg">Mark as In Progress</button>
-                <button onClick={() => handleUpdateStatusForSelected('Done')} className="bg-green-500 text-white px-4 py-2 rounded-lg">Mark as Complete</button>
+                <button onClick={handleSelectAll} className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg">Select All</button>
+                <button onClick={handleUnselectAll} className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg">Unselect All</button>
+                <button onClick={() => handleUpdateStatusForSelected('To Do')} className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg">Mark as To Do</button>
+                <button onClick={() => handleUpdateStatusForSelected('In Progress')} className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg">Mark as In Progress</button>
+                <button onClick={() => handleUpdateStatusForSelected('Done')} className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg">Mark as Complete</button>
               </div>
               <div className="flex items-center">
-                <input type="checkbox" id="compactView" checked={isCompact} onChange={() => setIsCompact(!isCompact)} className="mr-2" />
-                <label htmlFor="compactView">Compact View</label>
+                <input type="checkbox" id="compactView" checked={isCompact} onChange={() => setIsCompact(!isCompact)} className="h-5 w-5 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500 dark:bg-gray-700 dark:border-gray-600 dark:text-cyan-400 dark:focus:ring-cyan-400 cursor-pointer" />
+                <label htmlFor="compactView" className="ml-2">Compact View</label>
               </div>
             </div>
             {categories.map((category, index) => {
               const topicsForCategory = getTopicsForCategory(category);
+              const selectedInCategoryCount = topicsForCategory.filter(t => selectedTopics.includes(t.id)).length;
+              const allInCategorySelected = selectedInCategoryCount === topicsForCategory.length;
               const isCollapsed = collapsedCategories.includes(category);
               if (topicsForCategory.length === 0 && searchTerm) return null;
 
               return (
                 <div key={category} className="mb-12 border-b border-gray-200 dark:border-gray-700 pb-8">
-                  <div
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, category, 'CATEGORY', index)}
-                    onClick={() => handleToggleCategoryCollapse(category)}
-                    className={`flex items-center justify-between mb-6 cursor-pointer group ${draggedItem && draggedItem.type === 'CATEGORY' && draggedItem.item === category ? 'opacity-50' : ''} `}>
-                    <div className="flex items-center cursor-grab">
-                      <svg className="w-6 h-6 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 mr-3 transition-colors" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-                      <h3 className="text-3xl font-bold text-gray-800 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{category}</h3>
+                  <div className={`flex items-center justify-between mb-6 cursor-pointer group ${draggedItem && draggedItem.type === 'CATEGORY' && draggedItem.item === category ? 'opacity-50' : ''} `}>
+                    <div className="flex items-center">
+                      <input
+                        title='a'
+                        placeholder=''
+                        type="checkbox"
+                        ref={el => {
+                          if (el) {
+                            categoryCheckboxRefs.current[category] = el;
+                          } else {
+                            delete categoryCheckboxRefs.current[category];
+                          }
+                        }}
+                        checked={allInCategorySelected}
+                        onChange={(e) => handleSelectCategory(category, e.target.checked)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-5 w-5 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500 dark:bg-gray-700 dark:border-gray-600 dark:text-cyan-400 dark:focus:ring-cyan-400 cursor-pointer mr-4"
+                      />
+                      <div draggable onDragStart={(e) => handleDragStart(e, category, 'CATEGORY', index)} onClick={() => handleToggleCategoryCollapse(category)} className="flex items-center cursor-grab">
+                        <svg className="w-6 h-6 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 mr-3 transition-colors" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                        <h3 className="text-3xl font-bold text-gray-800 dark:text-gray-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">{category}</h3>
+                      </div>
                     </div>
-                    <svg className={`w-7 h-7 text-gray-500 transform transition-transform ${!isCollapsed ? 'rotate-180' : ''} `} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    <svg onClick={() => handleToggleCategoryCollapse(category)} className={`w-7 h-7 text-gray-500 transform transition-transform ${!isCollapsed ? 'rotate-180' : ''} `} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                   </div>
                   {!isCollapsed && (
                     <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 sm:grid-cols-1 ${isCompact ? 'xl:grid-cols-4' : ''}`}>
@@ -373,22 +413,22 @@ export default function App() {
                           </div>
                           <footer className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
                             <div className="flex items-center">
-                              <input type="checkbox" checked={selectedTopics.includes(topic.id)} onChange={() => handleSelectTopic(topic.id)} className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-blue-400 dark:focus:ring-blue-400 cursor-pointer" id={`select-${topic.id}`} />
+                              <input type="checkbox" checked={selectedTopics.includes(topic.id)} onChange={() => handleSelectTopic(topic.id)} className="h-5 w-5 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500 dark:bg-gray-700 dark:border-gray-600 dark:text-cyan-400 dark:focus:ring-cyan-400 cursor-pointer" id={`select-${topic.id}`} />
                               <label htmlFor={`select-${topic.id}`} className="ml-2 text-base text-gray-700 dark:text-gray-300 cursor-pointer">Select</label>
                             </div>
                             {!isCompact &&
                               <div className="flex flex-wrap justify-center sm:justify-end gap-3">
                                 {topic.link && (
-                                  <a href={topic.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900 transition-colors">
+                                  <a href={topic.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 dark:focus:ring-offset-gray-900 transition-colors">
                                     <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                                     Go to Link
                                   </a>
                                 )}
-                                <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`Topic: ${topic.Topic}\n\nNotes: ${topic.Notes}\n\nPractice Exercise: ${topic.PracticeExercise}\n\nKnowledge Covered: ${topic.KnowledgeCovered}`); }} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900 transition-colors">
+                                <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`Topic: ${topic.Topic}\n\nNotes: ${topic.Notes}\n\nPractice Exercise: ${topic.PracticeExercise}\n\nKnowledge Covered: ${topic.KnowledgeCovered}`); }} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900 transition-colors">
                                   <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" /></svg>
                                   Copy Info
                                 </button>
-                                <button onClick={(e) => { e.stopPropagation(); handleEditTopic(topic) }} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900 transition-colors">
+                                <button onClick={(e) => { e.stopPropagation(); handleEditTopic(topic) }} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900 transition-colors">
                                   <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-7.793 7.793A2 2 0 017.07 14.929L3.586 11.414A2 2 0 013.586 8.586l7.793-7.793zM15 6l2-2 1 1-2 2-1-1z" /></svg>
                                   Edit
                                 </button>
@@ -417,17 +457,17 @@ export default function App() {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-2xl transform transition-all max-h-[90vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-title">
             <h2 id="modal-title" className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">{currentTopic.id ? 'Edit Topic' : 'Add New Topic'}</h2>
             <div className="space-y-4">
-              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Category</label><input type="text" placeholder="e.g., ASP.NET Core" value={currentTopic.Category} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentTopic({ ...currentTopic, Category: e.target.value })} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100" /></div>
-              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Topic</label><input type="text" placeholder="e.g., Middleware Pipeline" value={currentTopic.Topic} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentTopic({ ...currentTopic, Topic: e.target.value })} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100" /></div>
-              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Priority</label><select title='High, Medium, Low' value={currentTopic.Priority} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrentTopic({ ...currentTopic, Priority: e.target.value as 'High' | 'Medium' | 'Low' })} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100" ><option>Low</option><option>Medium</option><option>High</option></select></div>
-              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Status</label><select title='To Do, In Progress, Done' value={currentTopic.status} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrentTopic({ ...currentTopic, status: e.target.value as 'To Do' | 'In Progress' | 'Done' })} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100" ><option>To Do</option><option>In Progress</option><option>Done</option></select></div>
-              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Notes</label><textarea placeholder="Key concepts, definitions, etc." value={currentTopic.Notes} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, Notes: e.target.value })} rows={4} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100" ></textarea></div>
-              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Practice Exercise</label><textarea placeholder="Coding challenge or task..." value={currentTopic.PracticeExercise} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, PracticeExercise: e.target.value })} rows={4} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100"></textarea></div>
-              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Knowledge Covered</label><textarea placeholder="What have you learned? Key takeaways..." value={currentTopic.KnowledgeCovered} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, KnowledgeCovered: e.target.value })} rows={5} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100" ></textarea></div>
+              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Category</label><input type="text" placeholder="e.g., ASP.NET Core" value={currentTopic.Category} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentTopic({ ...currentTopic, Category: e.target.value })} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:focus:ring-cyan-400 text-gray-900 dark:text-gray-100" /></div>
+              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Topic</label><input type="text" placeholder="e.g., Middleware Pipeline" value={currentTopic.Topic} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentTopic({ ...currentTopic, Topic: e.target.value })} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:focus:ring-cyan-400 text-gray-900 dark:text-gray-100" /></div>
+              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Priority</label><select title='High, Medium, Low' value={currentTopic.Priority} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrentTopic({ ...currentTopic, Priority: e.target.value as 'High' | 'Medium' | 'Low' })} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:focus:ring-cyan-400 text-gray-900 dark:text-gray-100" ><option>Low</option><option>Medium</option><option>High</option></select></div>
+              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Status</label><select title='To Do, In Progress, Done' value={currentTopic.status} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrentTopic({ ...currentTopic, status: e.target.value as 'To Do' | 'In Progress' | 'Done' })} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:focus:ring-cyan-400 text-gray-900 dark:text-gray-100" ><option>To Do</option><option>In Progress</option><option>Done</option></select></div>
+              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Notes</label><textarea placeholder="Key concepts, definitions, etc." value={currentTopic.Notes} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, Notes: e.target.value })} rows={4} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:focus:ring-cyan-400 text-gray-900 dark:text-gray-100" ></textarea></div>
+              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Practice Exercise</label><textarea placeholder="Coding challenge or task..." value={currentTopic.PracticeExercise} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, PracticeExercise: e.target.value })} rows={4} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:focus:ring-cyan-400 text-gray-900 dark:text-gray-100"></textarea></div>
+              <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Knowledge Covered</label><textarea placeholder="What have you learned? Key takeaways..." value={currentTopic.KnowledgeCovered} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCurrentTopic({ ...currentTopic, KnowledgeCovered: e.target.value })} rows={5} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:focus:ring-cyan-400 text-gray-900 dark:text-gray-100" ></textarea></div>
             </div>
             <div className="mt-6 flex justify-end space-x-4">
               <button onClick={closeModal} className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-md transition-colors dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200">Cancel</button>
-              <button onClick={handleSaveTopic} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors">Save</button>
+              <button onClick={handleSaveTopic} className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded-md transition-colors">Save</button>
             </div>
           </div>
         </div>
